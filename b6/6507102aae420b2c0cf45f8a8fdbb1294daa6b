@@ -1,0 +1,21 @@
+index.html
+  s_4e606357c6cb8d::t_9b89fc74c286af 253,418-450,452
+  s_4e606357c6cb8d::t_6adbb40ccc9550 187-189,251,374,378-380,388,394-398,405-414
+  s_4e606357c6cb8d::t_84a0aff49a807f 415-416
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b66507102aae420b2c0cf45f8a8fdbb1294daa6b",
+  "prompts": {},
+  "sessions": {
+    "s_4e606357c6cb8d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "bc0c6f7b-e809-433e-b921-eab9836fc6f4",
+        "model": "copilot/claude-opus-4.8"
+      },
+      "human_author": "Himanshi Bhambhani <himanshibhambhani@gmail.com>"
+    }
+  }
+}
