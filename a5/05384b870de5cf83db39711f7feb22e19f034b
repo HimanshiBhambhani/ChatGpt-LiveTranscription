@@ -1,0 +1,19 @@
+README.md
+  s_c1695dfc467c7c::t_df041ad2feea86 3-4,8-14,17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a505384b870de5cf83db39711f7feb22e19f034b",
+  "prompts": {},
+  "sessions": {
+    "s_c1695dfc467c7c": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "44207624-501b-46b1-9d77-abdc45bb05ef",
+        "model": "copilot/claude-opus-4.8"
+      },
+      "human_author": "Himanshi Bhambhani <himanshibhambhani@gmail.com>"
+    }
+  }
+}
