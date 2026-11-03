@@ -1,0 +1,27 @@
+index.html
+  h_172f058736bda5 136-154,156,188-189,231-236,251,253,304,309-310,312,320-323,331-334,503-513,524-526
+  s_4e606357c6cb8d::t_c22f2eadc4049c 303,335-336,514-516
+README.md
+  s_4e606357c6cb8d::t_0fd532fea03110 25-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd60d0f96c683eee0151912471281b5515982c0a",
+  "prompts": {},
+  "humans": {
+    "h_172f058736bda5": {
+      "author": "Himanshi Bhambhani <himanshibhambhani@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4e606357c6cb8d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "bc0c6f7b-e809-433e-b921-eab9836fc6f4",
+        "model": "copilot/claude-opus-4.8"
+      },
+      "human_author": "Himanshi Bhambhani <himanshibhambhani@gmail.com>"
+    }
+  }
+}
