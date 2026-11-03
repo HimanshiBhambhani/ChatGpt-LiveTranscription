@@ -184,9 +184,9 @@
       <label class="block text-xs text-neutral-500 mb-1">AI provider</label>
       <select id="providerSelect"
         class="w-full h-10 px-3 mb-3 rounded-lg border border-neutral-300 text-[13px] bg-white focus:outline-none focus:border-blue-400">
-        <option value="openai">OpenAI — gpt-4o-mini</option>
-        <option value="groq">Groq — llama-3.1-8b</option>
-        <option value="gemini">Google Gemini — 2.5-flash</option>
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+        <option value="gemini">Google Gemini</option>
       </select>
       <label id="apiKeyLabel" class="block text-xs text-neutral-500 mb-1">OpenAI API key (optional)</label>
       <input id="apiKeyInput" type="password" placeholder="Paste key — stored locally"
@@ -248,9 +248,9 @@
     openai: { name: "OpenAI API key",        placeholder: "sk-…",
               url: "https://api.openai.com/v1/chat/completions", model: "gpt-4o-mini" },
     groq:   { name: "Groq API key",          placeholder: "gsk_…",
-              url: "https://api.groq.com/openai/v1/chat/completions", model: "llama-3.1-8b-instant" },
+              url: "https://api.groq.com/openai/v1/chat/completions", model: "openai/gpt-oss-20b" },
     gemini: { name: "Google Gemini API key", placeholder: "AIza…",
-              model: "gemini-2.5-flash" },
+              model: "gemini-flash-lite-latest" },
   };
   const currentProvider = () => localStorage.getItem("ai_provider") || "openai";
   const providerKey = (p) => (localStorage.getItem("ai_key_" + p) || "").trim();
@@ -371,11 +371,13 @@
     }
     return provider === "gemini"
       ? callGemini(prompt, key)
-      : callOpenAICompatible(prompt, key, PROVIDERS[provider]);
+      : callOpenAICompatible(prompt, key, provider);
   }
 
   // OpenAI + Groq share the same request/response shape.
-  async function callOpenAICompatible(prompt, key, cfg) {
+  async function callOpenAICompatible(prompt, key, provider, model, retried) {
+    const cfg = PROVIDERS[provider];
+    model = model || cfg.model;
     const res = await fetch(cfg.url, {
       method: "POST",
       headers: {
@@ -383,35 +385,71 @@
         "Authorization": "Bearer " + key,
       },
       body: JSON.stringify({
-        model: cfg.model,
+        model,
         messages: [{ role: "user", content: prompt }],
       }),
     });
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}));
+      // Self-heal: if Groq rejects the model, discover an available one and retry once.
+      if (provider === "groq" && !retried) {
+        const alt = await firstGroqChatModel(key);
+        if (alt && alt !== model) return callOpenAICompatible(prompt, key, provider, alt, true);
+      }
       throw new Error(detail?.error?.message || ("API error " + res.status));
     }
     const data = await res.json();
     return data.choices?.[0]?.message?.content?.trim() || "(no response)";
   }
 
+  // Pick the first general chat model available on this Groq key.
+  async function firstGroqChatModel(key) {
+    try {
+      const r = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { Authorization: "Bearer " + key },
+      });
+      const j = await r.json();
+      const skip = /whisper|guard|tts|orpheus|embed|safeguard/i;
+      return (j.data || []).map((x) => x.id).find((id) => !skip.test(id)) || null;
+    } catch (_) { return null; }
+  }
+
   async function callGemini(prompt, key) {
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/" +
-      PROVIDERS.gemini.model + ":generateContent?key=" + encodeURIComponent(key);
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    });
-    if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail?.error?.message || ("Gemini API error " + res.status));
+    // Try models in order until one responds — handles 503 overload / 429 / retired models.
+    const queue = [
+      PROVIDERS.gemini.model,        // gemini-flash-lite-latest (alias, future-proof)
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
+      "gemini-3.8-flash",
+    ];
+    const tried = new Set();
+    let lastErr = "";
+    for (let i = 0; i < queue.length; i++) {
+      const model = queue[i];
+      if (tried.has(model)) continue;
+      tried.add(model);
+      try {
+        const url =
+          "https://generativelanguage.googleapis.com/v1beta/models/" +
+          model + ":generateContent?key=" + encodeURIComponent(key);
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "(no response)";
+        }
+        const detail = await res.json().catch(() => ({}));
+        lastErr = detail?.error?.message || ("Gemini API error " + res.status);
+        // If Google names a replacement model in the error, queue it too.
+        for (const a of [...lastErr.matchAll(/models\/([a-z0-9.\-]+)/gi)].map((x) => x[1])) {
+          if (!tried.has(a)) queue.push(a);
+        }
+      } catch (e) { lastErr = String(e); }
     }
-    const data = await res.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "(no response)"
-    );
+    throw new Error(lastErr || "Gemini request failed");
   }
 
   function simulatedReply(prompt) {
