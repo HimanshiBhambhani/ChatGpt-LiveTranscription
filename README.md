@@ -1,0 +1,34 @@
+# ChatGPT — Live Transcription (MVP)
+
+A working MVP of the "ChatGPT Live Transcription" concept — built from the four Google Stitch
+wireframes. Speak → see a live transcript → edit it → send → get a reply. One HTML file, no build step.
+
+## Run it
+
+Open `mvp/index.html` in **Chrome or Edge** (the Web Speech API that powers live transcription
+is Chromium-only). No install, no server required.
+
+> On first use the browser asks for microphone permission — allow it.
+
+## The flow (maps 1:1 to the wireframes)
+
+| Screen | State in the app |
+|---|---|
+| 1 — Default chat | Idle input bar with mic + Live Transcript toggle |
+| 2 — Active recording | Animated waveform + real-time interim transcript ("LISTENING…") |
+| 3 — Review & edit | Editable transcript (`contenteditable`) |
+| 4 — Ready to send | Send → message posts and a reply comes back |
+
+## Real vs. demo responses
+
+- **Demo mode (default):** no key needed — replies are simulated so the full flow is usable.
+- **Real ChatGPT:** tap the settings circle (top-right) → paste an OpenAI API key. It's stored only
+  in your browser's `localStorage` and called directly from your device (`gpt-4o-mini`).
+
+## What's intentionally out of scope (V2)
+
+Streaming responses, conversation memory across turns, auth/accounts, server-side key proxy,
+multi-language transcription, and the Cut/Copy/Replace polish from screen 3.
+
+---
+*Concept + MVP only. Not affiliated with OpenAI.*
