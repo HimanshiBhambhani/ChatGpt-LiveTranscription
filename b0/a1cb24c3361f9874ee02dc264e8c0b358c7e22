@@ -1,0 +1,19 @@
+index.html
+  s_4e606357c6cb8d::t_048e475095cf44 1-451
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b0a1cb24c3361f9874ee02dc264e8c0b358c7e22",
+  "prompts": {},
+  "sessions": {
+    "s_4e606357c6cb8d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "bc0c6f7b-e809-433e-b921-eab9836fc6f4",
+        "model": "copilot/claude-opus-4.8"
+      },
+      "human_author": "hibhambh <hibhambh@cisco.com>"
+    }
+  }
+}
