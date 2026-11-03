@@ -109,7 +109,7 @@
 
     <!-- STATE: review / edit (screen 3 + 4) -->
     <section id="reviewView" hidden class="fade-in flex flex-col mb-3">
-      <span class="text-[11px] text-neutral-400 px-1 mb-1.5">Review &amp; edit before sending</span>
+      <span id="reviewHint" class="text-[11px] text-neutral-400 px-1 mb-1.5">Review &amp; edit before sending</span>
       <div
         id="editBox"
         contenteditable="true"
@@ -217,6 +217,7 @@
   const inputView    = el("inputView");
   const recordingView= el("recordingView");
   const reviewView   = el("reviewView");
+  const reviewHint   = el("reviewHint");
   const textInput    = el("textInput");
   const editBox      = el("editBox");
   const liveTranscript = el("liveTranscript");
@@ -264,6 +265,8 @@
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   let finalText = "";
+  let interimText = "";
+  let pendingAction = null;   // what to do once recognition fully ends: "review" | "send"
 
   if (SR) {
     recognition = new SR();
@@ -278,8 +281,9 @@
         if (event.results[i].isFinal) finalText += chunk + " ";
         else interim += chunk;
       }
+      interimText = interim;   // keep latest partial as a fallback if stop drops it
       const combined = (finalText + interim).trim();
-      if (combined) {
+      if (combined && voiceLive) {
         liveTranscript.innerHTML =
           escapeHtml(finalText) +
           '<span class="text-neutral-400">' + escapeHtml(interim) + "</span>" +
@@ -294,8 +298,10 @@
     };
 
     recognition.onend = () => {
-      // If we stopped intentionally, go to review; otherwise keep listening.
-      if (state === "listening") stopListening();
+      // Fires AFTER the final results are delivered. Finalize here so the
+      // transcript is never read before speech has been fully captured.
+      if (state !== "listening") return;   // cancelled — ignore
+      finalizeTranscript(pendingAction || "review");
     };
   }
 
@@ -309,6 +315,7 @@
     recordingView.hidden = !(next === "listening" && voiceLive);
     recordingBar.hidden  = !(next === "listening" && !voiceLive);
     reviewView.hidden    = next !== "review";
+    reviewHint.hidden    = !voiceLive;   // hide the "Review & edit" label in voice-off mode
     controlRow.hidden    = next === "listening";
     // Send button shows in review (or when idle with typed text)
     sendBtn.hidden = !(next === "review" || (next === "idle" && textInput.value.trim()));
@@ -317,6 +324,8 @@
   function startListening() {
     if (!recognition) { showNotice(); return; }
     finalText = "";
+    interimText = "";
+    pendingAction = null;
     voiceLive = liveToggle.checked;
     if (voiceLive) {
       liveTranscript.innerHTML =
@@ -329,14 +338,30 @@
   }
 
   function cancelListening() {
-    setState("idle");          // set first so onend doesn't route to review
+    setState("idle");          // set first so onend doesn't finalize
     finalText = "";
+    interimText = "";
+    pendingAction = null;
     try { recognition && recognition.stop(); } catch (_) {}
   }
 
-  function stopListening() {
+  // Ask recognition to stop; the real work happens in onend → finalizeTranscript.
+  function stopListening(action) {
+    pendingAction = action || "review";
     try { recognition && recognition.stop(); } catch (_) {}
-    const text = finalText.trim();
+  }
+
+  // Called from onend once the complete transcript is available.
+  function finalizeTranscript(action) {
+    const text = (finalText + " " + interimText).replace(/\s+/g, " ").trim();
+    finalText = "";
+    interimText = "";
+    pendingAction = null;
+    if (action === "send") {
+      setState("idle");
+      if (text) send(text);
+      return;
+    }
     editBox.textContent = text;
     setState("review");
     if (text) placeCaretAtEnd(editBox);
@@ -558,10 +583,10 @@
     // transcript is shown live (on) or hidden in black-box mode (off).
     startListening();
   });
-  stopBtn.addEventListener("click", stopListening);
+  stopBtn.addEventListener("click", () => stopListening("review"));
   cancelRecBtn.addEventListener("click", cancelListening);
-  stopRecBtn.addEventListener("click", stopListening);
-  sendRecBtn.addEventListener("click", stopListening);
+  stopRecBtn.addEventListener("click", () => stopListening("review"));
+  sendRecBtn.addEventListener("click", () => stopListening("send"));
   sendBtn.addEventListener("click", () => {
     const text = state === "review" ? editBox.textContent : textInput.value;
     send(text);
