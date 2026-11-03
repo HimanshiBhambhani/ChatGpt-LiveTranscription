@@ -1,0 +1,27 @@
+index.html
+  h_a005f92defb7d8 96-97,102,165-173,176-177,210-211,218-236,292-307,344-345,351-358,365,377-393,398,400,484-485,508-528,530-531
+  h_a005f92defb7d8 394-395
+README.md
+  s_4e606357c6cb8d::t_8b792b868e71e6 22-27,31-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de2c8fb5f6c18d08c5139d880718e90b000f976c",
+  "prompts": {},
+  "humans": {
+    "h_a005f92defb7d8": {
+      "author": "hibhambh <hibhambh@cisco.com>"
+    }
+  },
+  "sessions": {
+    "s_4e606357c6cb8d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "bc0c6f7b-e809-433e-b921-eab9836fc6f4",
+        "model": "copilot/claude-opus-4.8"
+      },
+      "human_author": "hibhambh <hibhambh@cisco.com>"
+    }
+  }
+}
