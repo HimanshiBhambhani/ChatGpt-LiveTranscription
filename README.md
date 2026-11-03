@@ -19,11 +19,23 @@ is Chromium-only). No install, no server required.
 | 3 — Review & edit | Editable transcript (`contenteditable`) |
 | 4 — Ready to send | Send → message posts and a reply comes back |
 
+## Live Transcript toggle
+
+- **On** — recording shows the transcript live as you speak (screen 2).
+- **Off** — voice still works, but in a dark "black box" mode with no live transcript (like
+  ChatGPT voice mode); the captured text appears only on the review screen before you send.
+
 ## Real vs. demo responses
 
 - **Demo mode (default):** no key needed — replies are simulated so the full flow is usable.
-- **Real ChatGPT:** tap the settings circle (top-right) → paste an OpenAI API key. It's stored only
-  in your browser's `localStorage` and called directly from your device (`gpt-4o-mini`).
+- **Real replies:** tap the settings circle (top-right), pick a provider, and paste its key.
+  Keys are stored only in your browser's `localStorage` and called directly from your device.
+
+  | Provider | Model | Get a key |
+  |---|---|---|
+  | OpenAI | `gpt-4o-mini` | platform.openai.com |
+  | Groq | `llama-3.3-70b-versatile` | console.groq.com |
+  | Google Gemini | `gemini-1.5-flash` | aistudio.google.com |
 
 ## What's intentionally out of scope (V2)
 
