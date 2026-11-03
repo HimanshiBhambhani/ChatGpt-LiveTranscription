@@ -22,8 +22,9 @@ is Chromium-only). No install, no server required.
 ## Live Transcript toggle
 
 - **On** — recording shows the transcript live as you speak (screen 2).
-- **Off** — voice still works, but in a dark "black box" mode with no live transcript (like
-  ChatGPT voice mode); the captured text appears only on the review screen before you send.
+- **Off** — the input bar turns into a ChatGPT-style inline recorder (cancel ✕ / stop ■ / send)
+  with an animated waveform and **no live text**; on stop it transcribes into the editable review
+  box so you can still edit before sending.
 
 ## Real vs. demo responses
 

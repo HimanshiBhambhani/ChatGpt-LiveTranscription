@@ -133,8 +133,27 @@
       </div>
     </section>
 
+    <!-- STATE: inline voice recording (Live Transcript off — ChatGPT-style) -->
+    <section id="recordingBar" hidden class="fade-in">
+      <div class="flex items-center w-full h-12 bg-white rounded-full border border-neutral-300 shadow-sm px-2">
+        <button id="cancelRecBtn" aria-label="Cancel recording"
+          class="w-8 h-8 rounded-full border border-neutral-300 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 shrink-0">
+          <svg class="w-3.5 h-3.5 stroke-current stroke-[2.2]" fill="none" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path></svg>
+        </button>
+        <div id="barWave" class="flex-1 h-6 mx-2 flex items-center justify-center space-x-[2px] overflow-hidden"></div>
+        <button id="stopRecBtn" aria-label="Stop and review"
+          class="w-8 h-8 rounded-full border border-neutral-300 flex items-center justify-center hover:bg-neutral-50 shrink-0">
+          <span class="w-3 h-3 bg-neutral-900 rounded-[2px] block"></span>
+        </button>
+        <button id="sendRecBtn" aria-label="Finish"
+          class="w-9 h-9 ml-1 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 active:scale-95 transition shrink-0">
+          <svg class="w-4 h-4 stroke-current stroke-[2.3]" fill="none" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </div>
+    </section>
+
     <!-- Shared control row: Live Transcript toggle + contextual Send -->
-    <div class="flex items-center justify-between px-1 pt-2">
+    <div id="controlRow" class="flex items-center justify-between px-1 pt-2">
       <span class="text-xs text-neutral-500 font-medium">Live Transcript</span>
       <div class="flex items-center space-x-2">
         <label class="relative inline-flex items-center cursor-pointer">
@@ -166,8 +185,8 @@
       <select id="providerSelect"
         class="w-full h-10 px-3 mb-3 rounded-lg border border-neutral-300 text-[13px] bg-white focus:outline-none focus:border-blue-400">
         <option value="openai">OpenAI — gpt-4o-mini</option>
-        <option value="groq">Groq — llama-3.3-70b</option>
-        <option value="gemini">Google Gemini — 1.5-flash</option>
+        <option value="groq">Groq — llama-3.1-8b</option>
+        <option value="gemini">Google Gemini — 2.5-flash</option>
       </select>
       <label id="apiKeyLabel" class="block text-xs text-neutral-500 mb-1">OpenAI API key (optional)</label>
       <input id="apiKeyInput" type="password" placeholder="Paste key — stored locally"
@@ -209,6 +228,12 @@
   const noSpeech     = el("noSpeech");
   const recHelper    = el("recHelper");
   const liveCard     = el("liveCard");
+  const controlRow   = el("controlRow");
+  const recordingBar = el("recordingBar");
+  const cancelRecBtn = el("cancelRecBtn");
+  const stopRecBtn   = el("stopRecBtn");
+  const sendRecBtn   = el("sendRecBtn");
+  const barWave      = el("barWave");
 
   // Settings
   const settingsBtn    = el("settingsBtn");
@@ -223,9 +248,9 @@
     openai: { name: "OpenAI API key",        placeholder: "sk-…",
               url: "https://api.openai.com/v1/chat/completions", model: "gpt-4o-mini" },
     groq:   { name: "Groq API key",          placeholder: "gsk_…",
-              url: "https://api.groq.com/openai/v1/chat/completions", model: "llama-3.3-70b-versatile" },
+              url: "https://api.groq.com/openai/v1/chat/completions", model: "llama-3.1-8b-instant" },
     gemini: { name: "Google Gemini API key", placeholder: "AIza…",
-              model: "gemini-1.5-flash" },
+              model: "gemini-2.5-flash" },
   };
   const currentProvider = () => localStorage.getItem("ai_provider") || "openai";
   const providerKey = (p) => (localStorage.getItem("ai_key_" + p) || "").trim();
@@ -275,13 +300,16 @@
   }
 
   // ---- State machine ------------------------------------------------------
-  let state = "idle"; // idle | listening | review
+  let state = "idle";      // idle | listening | review
+  let voiceLive = true;    // true = live transcript view, false = inline bar (transcribe on stop)
 
   function setState(next) {
     state = next;
     inputView.hidden     = next !== "idle";
-    recordingView.hidden = next !== "listening";
+    recordingView.hidden = !(next === "listening" && voiceLive);
+    recordingBar.hidden  = !(next === "listening" && !voiceLive);
     reviewView.hidden    = next !== "review";
+    controlRow.hidden    = next === "listening";
     // Send button shows in review (or when idle with typed text)
     sendBtn.hidden = !(next === "review" || (next === "idle" && textInput.value.trim()));
   }
@@ -289,28 +317,21 @@
   function startListening() {
     if (!recognition) { showNotice(); return; }
     finalText = "";
-    const liveOn = liveToggle.checked;
-
-    // Live Transcript OFF → "black box" voice mode (recording works, transcript hidden).
-    liveCard.hidden = !liveOn;
-    if (liveOn) {
-      recordingView.classList.remove("bg-neutral-900", "rounded-3xl", "py-6", "px-4");
-      recHelper.textContent = "Just talk naturally, we'll handle the rest";
-      recHelper.className = "text-[11px] text-neutral-400 mb-4";
-      stopBtn.className = "text-[11px] text-neutral-500 mt-3 hover:text-neutral-800";
-    } else {
-      recordingView.classList.add("bg-neutral-900", "rounded-3xl", "py-6", "px-4");
-      recHelper.textContent = "Listening… transcript hidden";
-      recHelper.className = "text-[11px] text-neutral-400 mb-4";
-      stopBtn.className = "text-[11px] text-neutral-300 mt-3 hover:text-white";
+    voiceLive = liveToggle.checked;
+    if (voiceLive) {
+      liveTranscript.innerHTML =
+        '<span class="text-neutral-400">Start speaking…</span><span class="blinking-cursor"></span>';
     }
-
-    liveTranscript.innerHTML =
-      '<span class="text-neutral-400">Start speaking…</span><span class="blinking-cursor"></span>';
     try {
       recognition.start();
     } catch (_) { /* already started */ }
     setState("listening");
+  }
+
+  function cancelListening() {
+    setState("idle");          // set first so onend doesn't route to review
+    finalText = "";
+    try { recognition && recognition.stop(); } catch (_) {}
   }
 
   function stopListening() {
@@ -479,6 +500,20 @@
     }
   })();
 
+  // Thin inline waveform for the ChatGPT-style recording bar
+  (function buildBarWave() {
+    const n = 44;
+    for (let i = 0; i < n; i++) {
+      const bar = document.createElement("div");
+      bar.className = "waveform-bar";
+      bar.style.width = "2px";
+      bar.style.height = "100%";
+      bar.style.animationDelay = (i * 0.05) + "s";
+      bar.style.animationDuration = (0.7 + (i % 6) * 0.1) + "s";
+      barWave.appendChild(bar);
+    }
+  })();
+
   // ---- Wiring -------------------------------------------------------------
   micBtn.addEventListener("click", () => {
     // Voice mode always works. Live Transcript only controls whether the
@@ -486,6 +521,9 @@
     startListening();
   });
   stopBtn.addEventListener("click", stopListening);
+  cancelRecBtn.addEventListener("click", cancelListening);
+  stopRecBtn.addEventListener("click", stopListening);
+  sendRecBtn.addEventListener("click", stopListening);
   sendBtn.addEventListener("click", () => {
     const text = state === "review" ? editBox.textContent : textInput.value;
     send(text);
